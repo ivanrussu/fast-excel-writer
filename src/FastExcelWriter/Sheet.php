@@ -141,6 +141,7 @@ class Sheet implements InterfaceSheetWriter
     // bottom sheet nodes
     protected array $bottomNodesOptions = [];
 
+    protected bool $showSummaryRight = true;
 
     /**
      * Sheet constructor
@@ -4284,6 +4285,16 @@ class Sheet implements InterfaceSheetWriter
         return $this;
     }
 
+    public function setShowSummaryRight(bool $showSummaryRight): Sheet
+    {
+        $this->showSummaryRight = $showSummaryRight;
+        return $this;
+    }
+    
+    public function getShowSummaryRight(): bool
+    {
+        return $this->showSummaryRight;
+    }
 }
 
 // EOF

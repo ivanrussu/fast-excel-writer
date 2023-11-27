@@ -801,9 +801,17 @@ EOD;
         ];
         $fileWriter->write('<worksheet' . $this->_tagOptions($nameSpaces) . '>');
 
-        if ($sheet->getPageFit()) {
+        if ($sheet->getPageFit() || !$sheet->getShowSummaryRight()) {
             $fileWriter->write('<sheetPr>');
-            $fileWriter->write('<pageSetUpPr fitToPage="1"/>');
+            
+            if (!$sheet->getShowSummaryRight()) {
+                $fileWriter->write('<outlinePr summaryRight="0"/>');
+            }
+            
+            if ($sheet->getPageFit()) {
+                $fileWriter->write('<pageSetUpPr fitToPage="1"/>');
+            }
+            
             $fileWriter->write('</sheetPr>');
         }
         $minCell = $sheet->minCell();
