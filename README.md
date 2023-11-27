@@ -290,6 +290,19 @@ $this->setColWidth('D', 30);
 $this->setColWidthAuto('D');
 ```
 
+You can set outline of columns.
+
+```php
+  $sheet->setColOutlineLevel('E', 1);
+```
+
+You can also collapse the column. You must hide the column, otherwise the collapse will not be visible in Excel 2007.
+
+```php
+  $sheet->setColCollapsed('E', true)
+        ->setColHidden('E');
+```
+
 ### Define Named Ranges
 
 FastExcelWriter supports _named ranges_ and does not support _named formulae_.
