@@ -874,7 +874,47 @@ class Sheet implements InterfaceSheetWriter
     {
         return $this->setColWidths($widths, true);
     }
-
+    
+    /**
+     * Set outline level of column
+     *
+     * @param int|string|array $col Column number or column letter (or array of these)
+     * @param int $level Outline level
+     *
+     * @return $this
+     */
+    public function setColOutlineLevel($col, int $level): Sheet
+    {
+        $colIndexes = Excel::colIndexRange($col);
+        foreach($colIndexes as $colIdx) {
+            if ($colIdx >= 0) {
+                $this->colAttributes[$colIdx]['outlineLevel'] = $level;
+            }
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Collapse/restore column
+     *
+     * @param int|string|array $col Column number or column letter (or array of these)
+     * @param bool $val
+     *
+     * @return $this
+     */
+    public function setColCollapsed($col, bool $val): Sheet
+    {
+        $colIndexes = Excel::colIndexRange($col);
+        foreach($colIndexes as $colIdx) {
+            if ($colIdx >= 0) {
+                $this->colAttributes[$colIdx]['collapsed'] = (int)$val;
+            }
+        }
+        
+        return $this;
+    }
+    
     /**
      * @return array
      */
