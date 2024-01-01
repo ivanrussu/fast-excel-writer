@@ -833,7 +833,9 @@ EOD;
         $fileWriter->write('</sheetView>');
 
         $fileWriter->write('</sheetViews>');
-
+        
+        $fileWriter->write('<sheetFormatPr defaultRowHeight="14.4" outlineLevelRow="0" outlineLevelCol="1"/>');
+        
         $cols = $sheet->getColAttributes();
         if ($cols) {
             $fileWriter->write('<cols>');

@@ -748,10 +748,23 @@ class Sheet implements InterfaceSheetWriter
         $colIndexes = Excel::colIndexRange($col);
         foreach($colIndexes as $colIdx) {
             if ($colIdx >= 0) {
+                var_dump($colIdx, $val, (int)$val);
                 $this->colAttributes[$colIdx]['hidden'] = (int)$val;
             }
         }
 
+        return $this;
+    }
+    
+    public function setColAttribute($col, $key, $value): Sheet
+    {
+        $colIndexes = Excel::colIndexRange($col);
+        foreach($colIndexes as $colIdx) {
+            if ($colIdx >= 0) {
+                $this->colAttributes[$colIdx][$key] = $value;
+            }
+        }
+        
         return $this;
     }
 
@@ -908,7 +921,16 @@ class Sheet implements InterfaceSheetWriter
         $colIndexes = Excel::colIndexRange($col);
         foreach($colIndexes as $colIdx) {
             if ($colIdx >= 0) {
+//                if ($val) {
+//                    $this->colAttributes[$colIdx]['collapsed'] = 1;
+//                    continue;
+//                }
+                
                 $this->colAttributes[$colIdx]['collapsed'] = (int)$val;
+                
+//                if (isset($this->colAttributes[$colIdx]['collapsed'])) {
+//                    unset($this->colAttributes[$colIdx]['collapsed']);
+//                }
             }
         }
         
@@ -935,9 +957,9 @@ class Sheet implements InterfaceSheetWriter
                         $result[$colIdx]['width'] = number_format($attributes['width'], 6, '.', '');
                         $result[$colIdx]['customWidth'] = '1';
                     }
-                    if (isset($attributes['hidden'])) {
-                        $result[$colIdx]['hidden'] = '1';
-                    }
+//                    if (isset($attributes['hidden'])) {
+//                        $result[$colIdx]['hidden'] = '1';
+//                    }
                 }
             }
             ksort($result);

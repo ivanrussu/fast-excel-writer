@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace avadim\FastExcelWriter;
 
+use avadim\FastExcelHelper\Helper;
 use PHPUnit\Framework\TestCase;
 use avadim\FastExcelReader\Excel as ExcelReader;
+use ZipArchive;
 
 final class FastExcelWriterTest extends TestCase
 {
@@ -79,11 +81,10 @@ final class FastExcelWriterTest extends TestCase
         }
     }
 
-
-    protected function saveCheckRead($excel, $testFileName): ExcelReader
+    protected function saveAndValidate($excel, $testFileName): void
     {
         $excel->save($testFileName);
-        $this->assertTrue(file_exists($testFileName));
+        $this->assertFileExists($testFileName);
         $this->assertEquals('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', mime_content_type($testFileName));
         $valid = ExcelReader::validate($testFileName, $errors);
         if ($errors) {
@@ -97,6 +98,12 @@ final class FastExcelWriterTest extends TestCase
             var_dump($text);
         }
         $this->assertTrue($valid);
+    }
+
+    protected function saveCheckRead($excel, $testFileName): ExcelReader
+    {
+        $this->saveAndValidate($excel, $testFileName);
+        
         $vbsChecker = __DIR__ . '/check_open_xlsx.vbs';
         if (is_file($vbsChecker)) {
             system("$vbsChecker $testFileName", $result);
@@ -104,6 +111,17 @@ final class FastExcelWriterTest extends TestCase
         }
 
         return ExcelReader::open($testFileName);
+    }
+    
+    protected function rmDir($dir): bool
+    {
+        $files = array_diff(scandir($dir), ['.', '..']);
+        
+        foreach ($files as $file) {
+            (is_dir("$dir/$file")) ? $this->rmDir("$dir/$file") : unlink("$dir/$file");
+        }
+        
+        return rmdir($dir);
     }
 
 
@@ -643,6 +661,122 @@ final class FastExcelWriterTest extends TestCase
         $this->assertEquals($testList, $sheet->getImageList());
 
         //unlink($testFileName);
+    }
+    
+    public function testExcelWriterOutline()
+    {
+        $testFileName = __DIR__ . '/test_outline.xlsx';
+        if (file_exists($testFileName)) {
+            unlink($testFileName);
+        }
+        
+        $excel = Excel::create(['Demo']);
+        $sheet = $excel->sheet();
+        
+        $sheet->setShowSummaryRight(false);
+        
+        $sheet->setColOutlineLevel('B', 1);
+        
+//        $sheet->setColOutlineLevel('B', 1)
+//            ->setColCollapsed('B', false)
+//            ->setColVisible('B', true);
+//
+//
+//
+//        $sheet->setColOutlineLevel('D', 1);
+//        $sheet->setColOutlineLevel('E', 2);
+//
+//        $sheet->setColOutlineLevel('G', 1)
+//            ->setColCollapsed('G', true)
+//            ->setColHidden('G');
+        
+        $this->saveAndValidate($excel, $testFileName);
+        
+        $zip = new ZipArchive();
+        $res = $zip->open($testFileName);
+        if ($res !== true) {
+            $this->fail("cannot open file as archive");
+        }
+        
+        $extractedPath = __DIR__ . '/test_outline_extracted';
+        if (file_exists($extractedPath)) {
+            $this->rmDir($extractedPath);
+        }
+        mkdir($extractedPath);
+        
+        $zip->extractTo($extractedPath);
+        $zip->close();
+        
+        $sheetXmlPath = $extractedPath . '/xl/worksheets/sheet1.xml';
+        if (!file_exists($sheetXmlPath)) {
+            $this->fail("file $sheetXmlPath does not exists");
+        }
+        
+        $content = file_get_contents($extractedPath . '/xl/worksheets/sheet1.xml');
+        if (preg_match('#<cols>(.*)</cols>#', $content, $matches) !== 1) {
+            $this->fail('<cols> tag is not present in sheet file');
+        }
+
+        $colsInnerXml = $matches[1];
+        $cols = array_filter(explode('>', $colsInnerXml));
+        
+        $colsAttributes = [];
+        foreach ($cols as $col) {
+            preg_match_all(
+                "#(?'key'\w+)=\"(?'value'\w*)\"#",
+                $col,
+                $colMatches,
+                PREG_SET_ORDER
+            );
+            
+            $attributes = [];
+            foreach ($colMatches as $colMatch) {
+                $attributes[$colMatch['key']] = $colMatch['value'];
+            }
+
+            $colsAttributes[(int)$attributes['min']] = $attributes;
+        }
+        
+        // B
+        
+        $bColNumber = Helper::colNumber('B');
+        $this->assertArrayHasKey($bColNumber, $colsAttributes);
+        
+        $this->assertArrayHasKey('outlineLevel', $colsAttributes[$bColNumber]);
+        $this->assertEquals("1", $colsAttributes[$bColNumber]['outlineLevel']);
+        
+        $this->assertArrayNotHasKey('hidden', $colsAttributes[$bColNumber]);
+        $this->assertArrayNotHasKey('collapsed', $colsAttributes[$bColNumber]);
+        
+        // D and E
+        
+        foreach (['D', 'E'] as $colLetter) {
+            $colNumber = Helper::colNumber($colLetter);
+            $this->assertArrayHasKey($colNumber, $colsAttributes);
+            
+            $this->assertArrayHasKey('outlineLevel', $colsAttributes[$colNumber]);
+            $this->assertEquals("2", $colsAttributes[$colNumber]['outlineLevel']);
+            
+            $this->assertArrayNotHasKey('hidden', $colsAttributes[$bColNumber]);
+            $this->assertArrayNotHasKey('collapsed', $colsAttributes[$bColNumber]);
+        }
+        
+        // G
+        
+        $gColNumber = Helper::colNumber('G');
+        $this->assertArrayHasKey($gColNumber, $colsAttributes);
+        
+        $this->assertArrayHasKey('outlineLevel', $colsAttributes[$gColNumber]);
+        $this->assertEquals("1", $colsAttributes[$gColNumber]['outlineLevel']);
+        
+        $this->assertArrayHasKey('hidden', $colsAttributes[$gColNumber]);
+        $this->assertEquals("1", $colsAttributes[$gColNumber]['hidden']);
+        
+        $this->assertArrayHasKey('collapsed', $colsAttributes[$gColNumber]);
+        $this->assertEquals("1", $colsAttributes[$gColNumber]['collapsed']);
+        
+        //unlink($testFileName);
+        //$this->rmDir($extractedPath);
     }
 
 }
